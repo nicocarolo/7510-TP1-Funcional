@@ -1,5 +1,5 @@
 (ns logical-interpreter
-  (:require [clojure.java.io :as io] )
+  (:require [clojure.java.io :as io])
   (:require [clojure.string :as str]))
 
 (def number-database "
@@ -15,7 +15,7 @@
     subtract(X, Y, Z) :- add(Y, Z, X).
   ")
 
-(def data-file (io/resource "src/hello.txt" ))
+(def data-file (io/resource "src/hello.txt"))
 
 (defn loadDatabaseFromFile
      [filePath]
@@ -25,21 +25,21 @@
        (def databaseTwo (atom {}))
        (println "Cargando Base de Datos.")
        (doseq [line (line-seq rdr)]
-         (let [matcher (str/split line #"\(|\)|\.|\:-")]
+         (let [matcher (str/split line #"\(|\)|\.|\ :-")]
            ;(println (str/capitalize (get matcher 1)))
            ;(println (get matcher 1))
            (if (= (first (str/capitalize (get matcher 1))) (first (get matcher 1)))
              (def querys (conj querys matcher))
-             (def database (conj database matcher))
-             )
+             (def database (conj database matcher))))))
+
            ;(swap! databaseTwo conj matcher)
-           )
-         )
-       )
+
+
+
      ;(println querys)
      ;(println database)
-     [database querys]
-     )
+     [database querys])
+
 
 (defn loadDatabaseFromString
   [stringData]
@@ -48,33 +48,65 @@
 
   (let [lines (clojure.string/split-lines stringData)]
     (let [filtered (filter #(not (clojure.string/blank? %)) (map clojure.string/trim lines))]
-      (def mapped (map #(clojure.string/split % #"\(|\)|\.|\ :- ") filtered))
+      (def mapped (map #(clojure.string/split % #"\(|\) :- |\.|\)") filtered))
       (doall (map #(if (= (first (str/capitalize (get % 1))) (first (get % 1)))
                      (def querys (conj querys %))
-                     (def database (conj database %))
-                     ) mapped))
-      )
-    )
-  [database querys]
-  )
+                     (def database (conj database %)))
+                   mapped))))
+
+
+  [database querys])
+
+
+(defn evaluateRule
+  ;[rules database ]
+  []
+  (println "es Regla"))
+
+
+(defn isRule
+  [rules query]
+  (def result false)
+  (def replacementsParams (vector))
+  (doall (map #(
+                 if (= (first query) (first %))
+                   (let [paramsRequired (str/split (get % 1) #"\, ")]
+                     (let [paramsReceived (str/split (get query 1) #"\, ")]
+                      (if (= (count paramsRequired) (count paramsReceived))
+                        (def replacementsParams (vector paramsRequired paramsReceived))
+                        nil)))
+
+
+
+                   (def result false))
+           rules))
+  [result replacementsParams])
+
+
 
 (defn evaluate-query
   "Returns true if the rules and facts in database imply query, false if not. If
   either input can't be parsed, returns nil"
   [database query]
-    (let [[database querys] (loadDatabaseFromString database)]
-      (let [parsedQuery (str/split query #"\(|\)|\.|\:-")]
-        (println "Evaluando Query.")
+  (let [[database querys] (loadDatabaseFromString database)]
+    (doall (map println (first querys)))
+    (let [parsedQuery (str/split query #"\(|\)|\.|\:-")]
+      (println "Evaluando Query.")
+        ;(println (first parsedQuery))
+        ;(println first querys)
+        ;(println (isRule querys parsedQuery))
+      (if (= (isRule querys parsedQuery) true)
+        (evaluateRule)
         (if (= (contains? database parsedQuery) true)
           (def result true)
-          (def result false)
-          )
-        )
-      )
+          (def result false)))))
 
-  result
-  )
+
+
+
+
+  result)
+
 
 (defn -main []
-    (println (evaluate-query number-database "add(zero, zero, zero)."))
-  )
+    (println (evaluate-query number-database "subtract(one, zero, two)")))
