@@ -45,10 +45,9 @@
   [stringData]
   (def database (set nil))
   (def querys (set nil))
-
   (let [lines (clojure.string/split-lines stringData)]
     (let [filtered (filter #(not (clojure.string/blank? %)) (map clojure.string/trim lines))]
-      (def mapped (map #(clojure.string/split % #"\(|\) :- |\.|\)") filtered))
+      (def mapped (map #(clojure.string/split % #"\(|\), |\) :- |\.|\)") filtered))
       (doall (map #(if (= (first (str/capitalize (get % 1))) (first (get % 1)))
                      (def querys (conj querys %))
                      (def database (conj database %)))
@@ -59,28 +58,33 @@
 
 
 (defn evaluateRule
-  ;[rules database ]
-  []
-  (println "es Regla"))
+  [database replacementsParams factsToTest]
+  (println "es Regla")
+  (println database)
+  (println replacementsParams)
+  (println factsToTest)
+  )
 
 
 (defn isRule
   [rules query]
   (def result false)
   (def replacementsParams (vector))
+  (def factsToTest (vector))
   (doall (map #(
                  if (= (first query) (first %))
                    (let [paramsRequired (str/split (get % 1) #"\, ")]
                      (let [paramsReceived (str/split (get query 1) #"\, ")]
                       (if (= (count paramsRequired) (count paramsReceived))
-                        (def replacementsParams (vector paramsRequired paramsReceived))
+                        [
+                         (def replacementsParams [paramsRequired paramsReceived])
+                         (def factsToTest (into [] (partition 2 (subvec % 2))))
+                         (def result true)
+                         ]
                         nil)))
-
-
-
                    (def result false))
            rules))
-  [result replacementsParams])
+  [result replacementsParams factsToTest])
 
 
 
@@ -88,23 +92,22 @@
   "Returns true if the rules and facts in database imply query, false if not. If
   either input can't be parsed, returns nil"
   [database query]
-  (let [[database querys] (loadDatabaseFromString database)]
-    (doall (map println (first querys)))
+  (let [[database rules] (loadDatabaseFromString database)]
+    ;(doall (map println (first querys)))
     (let [parsedQuery (str/split query #"\(|\)|\.|\:-")]
       (println "Evaluando Query.")
-        ;(println (first parsedQuery))
-        ;(println first querys)
-        ;(println (isRule querys parsedQuery))
-      (if (= (isRule querys parsedQuery) true)
-        (evaluateRule)
-        (if (= (contains? database parsedQuery) true)
-          (def result true)
-          (def result false)))))
-
-
-
-
-
+      (let [[result replacementsParams factsToTest] (isRule rules parsedQuery)]
+        (if (= result true)
+          (evaluateRule database replacementsParams factsToTest)
+          (if (= (contains? database parsedQuery) true)
+            (def result true)
+            (def result false)))
+        )))
+      ;(if (= (isRule querys parsedQuery) true)
+      ;  (evaluateRule)
+      ;  (if (= (contains? database parsedQuery) true)
+      ;    (def result true)
+      ;    (def result false)))))
   result)
 
 
