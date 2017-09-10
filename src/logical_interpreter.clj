@@ -81,21 +81,9 @@
 
 (defn evaluate-rule
   [database replacementsParams factsToTest]
-  (def ruleValue true)
-  (doall (map #(
-                 if (= (is-fact [(nth % 0) (replace-several (nth % 1) replacementsParams)] database) false)
-                 (def ruleValue false)
-                 nil
-                 ) factsToTest))
-  ;(=
-  ;  (every?
-  ;    #(is-fact [(nth % 0) (replace-several (nth % 1) replacementsParams)] database)
-  ;    factsToTest
-  ;    )
-  ;  true
-  ;  )
-  ;)
-  ruleValue)
+  (= (every? #(is-fact [(nth % 0) (replace-several (nth % 1) replacementsParams)] database) factsToTest)
+    true)
+  )
 
 ;(defn isRule
 ;  [rules query]
