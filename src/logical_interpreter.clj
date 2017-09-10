@@ -15,24 +15,6 @@
 ;    subtract(X, Y, Z) :- add(Y, Z, X).
 ;  ")
 
-(def data-file (io/resource "src/hello.txt"))
-
-(defn loadDatabaseFromFile
-     [filePath]
-     (with-open [rdr (clojure.java.io/reader filePath)]
-       (def database (set nil))
-       (def querys (set nil))
-       (def databaseTwo (atom {}))
-       (println "Cargando Base de Datos.")
-       (doseq [line (line-seq rdr)]
-         (let [matcher (str/split line #"\(|\)|\.|\ :-")]
-           ;(println (str/capitalize (get matcher 1)))
-           ;(println (get matcher 1))
-           (if (= (first (str/capitalize (get matcher 1))) (first (get matcher 1)))
-             (def querys (conj querys matcher))
-             (def database (conj database matcher))))))
-     [database querys])
-
 (defn validate-input
   [line]
   (if (nil? (re-find (re-pattern "([a-zA-Z]*)(\\((.*\\)))") line))
@@ -41,7 +23,7 @@
     )
   )
 
-(defn loadDatabaseFromString
+(defn load-database
   [stringData]
   (def database (set nil))
   (def rules (set nil))
@@ -60,7 +42,7 @@
       )))
   [database rules])
 
-(defn isFact
+(defn is-fact
   [fact database]
   (def result false)
   (if (= (contains? database fact) true)
@@ -97,36 +79,81 @@
   (str/replace string (re-pattern possibleChars) replaces)
   )
 
-(defn evaluateRule
+(defn evaluate-rule
   [database replacementsParams factsToTest]
   (def ruleValue true)
   (doall (map #(
-                 if (= (isFact [(nth % 0) (replace-several (nth % 1) replacementsParams)] database) false)
+                 if (= (is-fact [(nth % 0) (replace-several (nth % 1) replacementsParams)] database) false)
                  (def ruleValue false)
                  nil
                  ) factsToTest))
+  ;(=
+  ;  (every?
+  ;    #(is-fact [(nth % 0) (replace-several (nth % 1) replacementsParams)] database)
+  ;    factsToTest
+  ;    )
+  ;  true
+  ;  )
+  ;)
   ruleValue)
 
-(defn isRule
-  [rules query]
-  (def result false)
-  (def replacementsParams (vector))
-  (def factsToTest (vector))
-  (doall (map #(
-                 if (= (first query) (first %))
-                   (let [paramsRequired (str/split (get % 1) #"\, ")]
-                     (let [paramsReceived (str/split (get query 1) #"\, ")]
-                      (if (= (count paramsRequired) (count paramsReceived))
-                        [
-                         (def replacementsParams [paramsRequired paramsReceived])
-                         (def factsToTest (into [] (partition 2 (subvec % 2))))
-                         (def result true)
-                         ]
-                        nil)))
-                   (def result false))
-           rules))
-  [result replacementsParams factsToTest])
+;(defn isRule
+;  [rules query]
+;  (def result false)
+;  (def replacementsParams (vector))
+;  (def factsToTest (vector))
+;  (doall (map #(
+;                 if (= (first query) (first %))
+;                   (let [paramsRequired (str/split (get % 1) #"\, ")]
+;                     (let [paramsReceived (str/split (get query 1) #"\, ")]
+;                      (if (= (count paramsRequired) (count paramsReceived))
+;                        [
+;                         (def replacementsParams [paramsRequired paramsReceived])
+;                         (def factsToTest (into [] (partition 2 (subvec % 2))))
+;                         (def result true)
+;                         ]
+;                        nil)))
+;                   (def result false))
+;           rules))
+;  [result replacementsParams factsToTest])
 
+(defn is-rule
+  [rules query]
+  (some #(= (first query) (first %)) rules)
+  )
+
+(defn get-params-required-by-rule
+  [rules query]
+  (str/split
+    (get
+      (nth
+        (filter
+          #(= (first query) (first %))
+          rules)
+        0)
+      1)
+  #"\, ")
+  )
+
+(defn get-params-received
+  [query]
+  (str/split (get query 1) #"\, ")
+  )
+
+(defn get-facts-to-test-by-rule
+  [rules query]
+  (into []
+    (partition 2
+      (subvec
+        (nth
+          (filter
+            #(= (first query) (first %))
+            rules)
+          0)
+        2)
+      )
+  )
+  )
 
 
 (defn evaluate-query
@@ -135,23 +162,25 @@
   [database query]
   (if (= (validate-input query) false)
     (def result nil)
-    (let [[database rules] (loadDatabaseFromString database)]
+    (let [[database rules] (load-database database)]
       (if (empty? database)
         (def result nil)
         (let [parsedQuery (str/split query #"\(|\)|\.|\:-")]
-          (println "Evaluando Query.")
-          (let [[result replacementsParams factsToTest] (isRule rules parsedQuery)]
-            (if (= result true)
-              (if (= (evaluateRule database replacementsParams factsToTest) true)
-                (def result true)
-                (def result false))
-              (if (= (isFact parsedQuery database) true)
-                (def result true)
-                (def result false))
-              ))))))
-  (if (nil? result)
-    (println "Ocurrio un error con la base de datos o consulta")
-    (println (str "La consulta: " query " es: " result)))
+          ;(println "Evaluando Query.")
+          (if (= (is-rule rules parsedQuery) true)
+            (if (= (evaluate-rule database
+                                  [(get-params-required-by-rule rules parsedQuery)
+                                  (get-params-received parsedQuery)]
+                                  (get-facts-to-test-by-rule rules parsedQuery)) true)
+              (def result true)
+              (def result false))
+            (if (= (is-fact parsedQuery database) true)
+              (def result true)
+              (def result false))
+            )))))
+  ;(if (nil? result)
+  ;  (println "Ocurrio un error con la base de datos o consulta")
+  ;  (println (str "La consulta: " query " es: " result)))
   result)
 
 
