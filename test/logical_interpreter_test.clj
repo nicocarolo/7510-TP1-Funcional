@@ -41,3 +41,43 @@
     (is (= (evaluate-query valid-database "varon)")
            nil)))
   )
+
+(deftest validate-input-test
+  (testing "subtract(one, one, two) should be true"
+    (is (= (validate-input "subtract(one, one, two)")
+           true)))
+  (testing "subtract(one) should be true"
+    (is (= (validate-input "subtract(one)")
+           true)))
+  (testing "subtract( should be false"
+    (is (= (validate-input "subtract(")
+           false)))
+  (testing "(one) should be false"
+    (is (= (validate-input "(one)")
+           false)))
+  (testing "subtract) should be false"
+    (is (= (validate-input "subtract)")
+           false)))
+  )
+
+(deftest validate-is-fact-test
+  (testing "add(one, zero, one) should be fact"
+    (let [[database rules] (load-database valid-database)]
+        (is (= (is-fact (clojure.string/split "add(one, zero, one)" #"\(|\)|\.|\:-") database)
+           true))))
+  (testing "add(one, zero, two) should not be fact"
+    (let [[database rules] (load-database valid-database)]
+        (is (= (is-fact (clojure.string/split "add(one, zero, two)" #"\(|\)|\.|\:-") database)
+               false))))
+  )
+
+(deftest validate-is-rule-test
+  (testing "subtract(one, one, two) should be rule"
+    (let [[database rules] (load-database valid-database)]
+      (is (= (is-rule rules (clojure.string/split "subtract(one, one, two)" #"\(|\)|\.|\:-"))
+             true))))
+  (testing "subtractts(one, one, two) should not be rule"
+    (let [[database rules] (load-database valid-database)]
+      (is (= (is-rule rules (clojure.string/split "subtractts(one, one, two)" #"\(|\)|\.|\:-"))
+             false))))
+  )

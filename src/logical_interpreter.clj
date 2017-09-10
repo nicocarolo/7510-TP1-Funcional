@@ -16,14 +16,25 @@
 ;  ")
 
 (defn validate-input
+  "Validate string input by the following regular expression: .([a-zA-Z]*)(\\((.*\\)))
+  Must match a word follow by '(' and ')' chars.
+  Return true if pattern match, false if not."
   [line]
-  (if (nil? (re-find (re-pattern "([a-zA-Z]*)(\\((.*\\)))") line))
+  (if (nil? (re-find (re-pattern ".([a-zA-Z]*)(\\((.*\\)))") line))
     false
     true
     )
   )
 
 (defn load-database
+  "Store string input in set of vectors.
+  Facts are splitted in [predicate     value1, value2, ...., valueN].
+  Rules are splitted in [predicate     value1, value2, ...., valueN
+                        predicateFact1 value1, value2, ...., valueN
+                        ...........................................
+                        predicateFactN value1, value2, ...., valueN].
+  If params in line are capitalize then the splitted line
+  will save as rule, else the splitted line will save as fact on database."
   [stringData]
   (def database (set nil))
   (def rules (set nil))
@@ -43,6 +54,8 @@
   [database rules])
 
 (defn is-fact
+  "Check if database contains splitted fact.
+  Return true if contain, false if not."
   [fact database]
   (def result false)
   (if (= (contains? database fact) true)
@@ -52,32 +65,12 @@
   )
 
 (defn replace-several
+  "Return string received with values replaced by replacementsParams criteria.
+  Example:
+    string = Y, X
+    replacementsParams = [[X Y] [pepe juan]]
+    return 'juan, pepe'"
   [string replacementsParams]
-  ;(def paramsCount (count (get replacementsParams 0)))
-  ;(if (= paramsCount 1)
-  ;  (def replaces {(name (get (get replacementsParams 0) 0))
-  ;                (name (get (get replacementsParams 1) 0))
-  ;                })
-  ;  (if (= paramsCount 2)
-  ;    (def replaces {(name (get (get replacementsParams 0) 0))
-  ;                  (name (get (get replacementsParams 1) 0))
-  ;                  (name (get (get replacementsParams 0) 1))
-  ;                  (name (get (get replacementsParams 1) 1))
-  ;                  })
-  ;    (if (= paramsCount 3)
-  ;      (def replaces {(name (get (get replacementsParams 0) 0))
-  ;                    (name (get (get replacementsParams 1) 0))
-  ;                    (name (get (get replacementsParams 0) 1))
-  ;                    (name (get (get replacementsParams 1) 1))
-  ;                    (name (get (get replacementsParams 0) 2))
-  ;                    (name (get (get replacementsParams 1) 2))
-  ;                    })
-  ;      ))
-  ;  )
-
-  ;(println (apply hash-map (interleave (get replacementsParams 0) (get replacementsParams 1))))
-  ;(println (type (interleave (get replacementsParams 0) (get replacementsParams 1))))
-  ;(println (type replaces) )
   (def possibleChars (str/join "|" (get replacementsParams 0)))
   (str/replace
     string
@@ -87,37 +80,25 @@
   )
 
 (defn evaluate-rule
+  "Evaluate rule checking if every on factsToTest is fact."
   [database replacementsParams factsToTest]
   (= (every? #(is-fact [(nth % 0) (replace-several (nth % 1) replacementsParams)] database) factsToTest)
     true)
   )
 
-;(defn isRule
-;  [rules query]
-;  (def result false)
-;  (def replacementsParams (vector))
-;  (def factsToTest (vector))
-;  (doall (map #(
-;                 if (= (first query) (first %))
-;                   (let [paramsRequired (str/split (get % 1) #"\, ")]
-;                     (let [paramsReceived (str/split (get query 1) #"\, ")]
-;                      (if (= (count paramsRequired) (count paramsReceived))
-;                        [
-;                         (def replacementsParams [paramsRequired paramsReceived])
-;                         (def factsToTest (into [] (partition 2 (subvec % 2))))
-;                         (def result true)
-;                         ]
-;                        nil)))
-;                   (def result false))
-;           rules))
-;  [result replacementsParams factsToTest])
-
 (defn is-rule
+  "Return true if splitted query is contain in rules,
+  false if not."
   [rules query]
-  (some #(= (first query) (first %)) rules)
+  (if (nil? (some #(= (first query) (first %)) rules))
+    false
+    true
+    )
   )
 
 (defn get-params-required-by-rule
+  "Return vector of params required by the splitted query received,
+  getting the rule format on rules."
   [rules query]
   (str/split
     (get
@@ -131,11 +112,14 @@
   )
 
 (defn get-params-received
+  "Return vector of params received on the splitted query received."
   [query]
   (str/split (get query 1) #"\, ")
   )
 
 (defn get-facts-to-test-by-rule
+  "Return vector of facts to test required by the splitted query received,
+  getting the rule format on rules."
   [rules query]
   (into []
     (partition 2
@@ -173,9 +157,6 @@
               (def result true)
               (def result false))
             )))))
-  ;(if (nil? result)
-  ;  (println "Ocurrio un error con la base de datos o consulta")
-  ;  (println (str "La consulta: " query " es: " result)))
   result)
 
 
