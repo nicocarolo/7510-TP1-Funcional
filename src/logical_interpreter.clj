@@ -31,19 +31,14 @@
            (if (= (first (str/capitalize (get matcher 1))) (first (get matcher 1)))
              (def querys (conj querys matcher))
              (def database (conj database matcher))))))
-
-           ;(swap! databaseTwo conj matcher)
-
-
-
-     ;(println querys)
-     ;(println database)
      [database querys])
 
-(defn validateLineInput
+(defn validate-input
   [line]
-  (println line)
-  true
+  (if (nil? (re-find (re-pattern "([a-zA-Z]*)(\\((.*\\)))") line))
+    false
+    true
+    )
   )
 
 (defn loadDatabaseFromString
@@ -52,7 +47,7 @@
   (def rules (set nil))
   (let [lines (str/split-lines stringData)]
     (let [filtered (filter #(not (str/blank? %)) (map str/trim lines))]
-      (if (not-every? #(validateLineInput % ) filtered)
+      (if (not-every? #(validate-input %) filtered)
         nil
         [(def mapped (map #(str/split % #"\(|\), |\) :- |\.|\)") filtered))
          (if (nil? mapped)
@@ -104,35 +99,13 @@
 
 (defn evaluateRule
   [database replacementsParams factsToTest]
-  (println "es Regla")
-  ;(println database)
-  (println replacementsParams)
-  (println factsToTest)
   (def ruleValue true)
   (doall (map #(
                  if (= (isFact [(nth % 0) (replace-several (nth % 1) replacementsParams)] database) false)
                  (def ruleValue false)
                  nil
                  ) factsToTest))
-  ;(println (replace-several (nth (get factsToTest 0) 1) replacementsParams))
-
-  ;(doall (map-indexed (fn [index item]
-  ;                      (reset! facts (assoc factsToTest index (into [] item)))
-  ;                      (println facts)
-  ;               (doall (map-indexed
-  ;                      (fn [idx itm]
-  ;                        [
-  ;                         (def replacedValue (str/replace (get (into [] item) 1)
-  ;                                               (get (get replacementsParams 0) idx)
-  ;                                               (get (get replacementsParams 1) idx)))
-  ;                         (swap! assoc facts index (assoc (get facts index) 1 replacedValue))
-  ;                         (println facts)
-  ;                         ]
-  ;                        )(get replacementsParams 0)))
-  ;                      ) factsToTest)
-  ;       )
   ruleValue)
-;(println (str/replace (get (into [] %) 1) (get (get replacementsParams 0) idx) (get (get replacementsParams 1) idx)))
 
 (defn isRule
   [rules query]
@@ -160,22 +133,25 @@
   "Returns true if the rules and facts in database imply query, false if not. If
   either input can't be parsed, returns nil"
   [database query]
-  (let [[database rules] (loadDatabaseFromString database)]
-    (if (empty? database)
-      (def result nil)
-      (let [parsedQuery (str/split query #"\(|\)|\.|\:-")]
-        (println "Evaluando Query.")
-        (let [[result replacementsParams factsToTest] (isRule rules parsedQuery)]
-          (if (= result true)
-            (if (= (evaluateRule database replacementsParams factsToTest) true)
-              (def result true)
-              (def result false))
-            (if (= (isFact parsedQuery database) true)
-              (def result true)
-              (def result false))
-            )
-          )))
-    )
+  (if (= (validate-input query) false)
+    (def result nil)
+    (let [[database rules] (loadDatabaseFromString database)]
+      (if (empty? database)
+        (def result nil)
+        (let [parsedQuery (str/split query #"\(|\)|\.|\:-")]
+          (println "Evaluando Query.")
+          (let [[result replacementsParams factsToTest] (isRule rules parsedQuery)]
+            (if (= result true)
+              (if (= (evaluateRule database replacementsParams factsToTest) true)
+                (def result true)
+                (def result false))
+              (if (= (isFact parsedQuery database) true)
+                (def result true)
+                (def result false))
+              ))))))
+  (if (nil? result)
+    (println "Ocurrio un error con la base de datos o consulta")
+    (println (str "La consulta: " query " es: " result)))
   result)
 
 
