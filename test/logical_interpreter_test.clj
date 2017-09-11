@@ -62,22 +62,42 @@
 
 (deftest validate-is-fact-test
   (testing "add(one, zero, one) should be fact"
-    (let [[database rules] (load-database valid-database)]
-        (is (= (is-fact (clojure.string/split "add(one, zero, one)" #"\(|\)|\.|\:-") database)
-           true))))
+        (is (= (is-fact (clojure.string/split "add(one, zero, one)" #"\(|\)|\.|\:-") (set [["add" "one, zero, one"]]))
+           true)))
   (testing "add(one, zero, two) should not be fact"
     (let [[database rules] (load-database valid-database)]
-        (is (= (is-fact (clojure.string/split "add(one, zero, two)" #"\(|\)|\.|\:-") database)
+        (is (= (is-fact (clojure.string/split "add(one, zero, two)" #"\(|\)|\.|\:-") (set [["add" "one, zero, one"]]))
                false))))
   )
 
 (deftest validate-is-rule-test
   (testing "subtract(one, one, two) should be rule"
-    (let [[database rules] (load-database valid-database)]
-      (is (= (is-rule rules (clojure.string/split "subtract(one, one, two)" #"\(|\)|\.|\:-"))
-             true))))
+    (is (= (is-rule [["subtract" "X, Y, Z" "add" "Y, Z, X"]] (clojure.string/split "subtract(one, one, two)" #"\(|\)|\.|\:-"))
+           true)))
   (testing "subtractts(one, one, two) should not be rule"
-    (let [[database rules] (load-database valid-database)]
-      (is (= (is-rule rules (clojure.string/split "subtractts(one, one, two)" #"\(|\)|\.|\:-"))
-             false))))
+    (is (= (is-rule [["subtract" "X, Y, Z" "add" "Y, Z, X"]] (clojure.string/split "subtractts(one, one, two)" #"\(|\)|\.|\:-"))
+           false)))
+  )
+
+(deftest get-params-required-by-rule-test
+  (testing "substract(X, Y, Z) should be required X, Y, Z"
+      (is (= (get-params-required-by-rule [["subtract" "X, Y, Z" "add" "Y, Z, X"]] (clojure.string/split "subtract(one, one, two)" #"\(|\)|\.|\:-"))
+             ["X" "Y" "Z"])))
+  )
+
+(deftest get-params-received-test
+  (testing "subtract(one, one, two) should be received one, one, two"
+    (is (= (get-params-received (clojure.string/split "subtract(one, one, two)" #"\(|\)|\.|\:-"))
+           ["one" "one" "two"])))
+  )
+
+(deftest get-facts-to-test-by-rule-test
+(testing "subtract(one, one, two) should be test facts: add Y, Z, X"
+  (is (= (get-facts-to-test-by-rule [["subtract" "X, Y, Z" "add" "Y, Z, X"]] (clojure.string/split "subtract(one, one, two)" #"\(|\)|\.|\:-"))
+         [(seq ["add" "Y, Z, X"])])))
+
+(testing "hijo(pepe, juan) should be test facts: varon X ; padre Y, X"
+  ;(println )
+  (is (= (get-facts-to-test-by-rule [["hijo" "X, Y" "varon" "X" "padre" "Y, X"]] (clojure.string/split "hijo(pepe, juan)" #"\(|\)|\.|\:-"))
+         [(seq ["varon" "X"]) (seq ["padre" "Y, X"])])))
   )
