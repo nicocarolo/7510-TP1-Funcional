@@ -2,18 +2,10 @@
   (:require [clojure.java.io :as io])
   (:require [clojure.string :as str]))
 
-;(def number-database "
-;    add(zero, zero, zero).
-;    add(zero, one, one).
-;    add(zero, two, two).
-;    add(one, zero, one).
-;    add(one, one, two).
-;    add(one, two, zero).
-;    add(two, zero, two).
-;    add(two, one, zero).
-;    add(two, two, one).
-;    subtract(X, Y, Z) :- add(Y, Z, X).
-;  ")
+(def query-input-regex #"\(|\)|\.")
+(def database-input-regex #"\(|\), |\) :- |\.|\)")
+;#"\(|\)|\.|\:-"
+;#"\(|\), |\) :- |\.|\)"
 
 (defn validate-input
   "Validate string input by the following regular expression: .([a-zA-Z]*)(\\((.*\\)))
@@ -24,6 +16,23 @@
     false
     true
     )
+  )
+
+(defn format-query
+  "Format query received and return a vector like
+  [predicate param1,param2,....,paramN]"
+  [query]
+  (str/split query query-input-regex)
+  )
+
+(defn format-data-line
+  "Format line from database received and return a vector like
+  [predicate     value1,value2, ....,valueN
+  predicateFact1 value1,value2, ....,valueN
+  ...........................................
+  predicateFactN value1,value2, ....,valueN]."
+  [line]
+  (str/split line database-input-regex)
   )
 
 (defn load-database
@@ -42,7 +51,7 @@
     (let [filtered (filter #(not (str/blank? %)) (map str/trim lines))]
       (if (not-every? #(validate-input %) filtered)
         nil
-        [(def mapped (map #(str/split % #"\(|\), |\) :- |\.|\)") filtered))
+        [(def mapped (map #(format-data-line %) filtered))
          (if (nil? mapped)
            nil
            (doall (map #(if (= (first (str/capitalize (get % 1))) (first (get % 1)))
@@ -144,8 +153,7 @@
     (let [[database rules] (load-database database)]
       (if (empty? database)
         (def result nil)
-        (let [parsedQuery (str/split query #"\(|\)|\.|\:-")]
-          ;(println "Evaluando Query.")
+        (let [parsedQuery (format-query query)]
           (if (= (is-rule rules parsedQuery) true)
             (if (= (evaluate-rule database
                                   [(get-params-required-by-rule rules parsedQuery)

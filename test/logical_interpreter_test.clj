@@ -92,12 +92,12 @@
   )
 
 (deftest get-facts-to-test-by-rule-test
-(testing "subtract(one, one, two) should be test facts: add Y, Z, X"
-  (is (= (get-facts-to-test-by-rule [["subtract" "X, Y, Z" "add" "Y, Z, X"]] (clojure.string/split "subtract(one, one, two)" #"\(|\)|\.|\:-"))
-         [(seq ["add" "Y, Z, X"])])))
+  (testing "subtract(one, one, two) should be test facts: add Y, Z, X"
+    (is (= (get-facts-to-test-by-rule [["subtract" "X, Y, Z" "add" "Y, Z, X"]] (clojure.string/split "subtract(one, one, two)" #"\(|\)|\.|\:-"))
+           [(seq ["add" "Y, Z, X"])])))
 
-(testing "hijo(pepe, juan) should be test facts: varon X ; padre Y, X"
-  ;(println )
-  (is (= (get-facts-to-test-by-rule [["hijo" "X, Y" "varon" "X" "padre" "Y, X"]] (clojure.string/split "hijo(pepe, juan)" #"\(|\)|\.|\:-"))
-         [(seq ["varon" "X"]) (seq ["padre" "Y, X"])])))
+  (testing "hijo(pepe, juan) should be test facts: varon X ; padre Y, X"
+    ;(println )
+    (is (= (get-facts-to-test-by-rule [["hijo" "X, Y" "varon" "X" "padre" "Y, X"]] (clojure.string/split "hijo(pepe, juan)" #"\(|\)|\.|\:-"))
+           [(seq ["varon" "X"]) (seq ["padre" "Y, X"])])))
   )
